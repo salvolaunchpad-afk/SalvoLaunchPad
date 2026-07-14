@@ -48,8 +48,8 @@ const STAGES = [
     num: '03',
     doodle: <DoodleCurve />,
     title: 'The trenches',
-    body: 'Trading opens on the bonding curve. Every buy and sell pays a 1% fee: half goes to staked holders in ETH, a quarter to the creator, forever. Holding literally pays.',
-    note: 'stake it, earn ETH',
+    body: 'Trading opens on the bonding curve. Every buy and sell pays a 1% fee, and half of it goes straight to the creator in ETH, on every trade, forever. Building beats dumping.',
+    note: 'creators get paid, forever',
   },
   {
     num: '04',
@@ -67,13 +67,13 @@ const VS_ROWS = [
     them: 'A sniper race. Bots win block one, then sell into your entry.',
   },
   {
-    label: 'Holding earns',
-    us: '50% of every trade fee, paid in ETH. Stake and collect.',
-    them: 'Nothing. You hold, they collect.',
+    label: 'Creators earn',
+    us: '0.5% of ALL volume, in ETH, paid on every single trade, forever.',
+    them: 'A sliver, sometimes, if the platform feels generous that month.',
   },
   {
     label: 'After graduation',
-    us: 'Same contract flips to a locked pool. Fee split keeps paying stakers.',
+    us: 'Same contract flips to a locked pool. The creator keeps earning.',
     them: 'The fee stream changes or dies the moment a token succeeds.',
   },
   {
@@ -89,7 +89,7 @@ export default function Home() {
   const live = launches.filter((l) => l.phase === 'live')
   const graduating = launches.filter((l) => l.phase === 'graduating' || l.phase === 'graduated')
 
-  const paidToHolders = launches.reduce((s, l) => s + l.lifetimeHolderFees, 0)
+  const paidToCreators = launches.reduce((s, l) => s + l.creatorEarned, 0)
   const inOpenSalvos = inSalvo.reduce((s, l) => s + l.salvoCommitted, 0)
 
   return (
@@ -108,8 +108,8 @@ export default function Home() {
         <Reveal delay={120}>
           <p className="hero-sub">
             The launchpad where launches open with a 2-minute batch auction nobody can
-            snipe, and holders earn ETH from every single trade. Sketch the idea,
-            fire the salvo, get paid for believing.
+            snipe, and creators earn ETH from every single trade, forever. Sketch the
+            idea, fire the salvo, get paid for building.
           </p>
         </Reveal>
         <Reveal delay={200}>
@@ -126,8 +126,8 @@ export default function Home() {
         </div>
         <div className="hero-stats">
           <div className="chip chip-green">
-            <span className="k">paid to holders</span>
-            <span className="v">{fmtEth(paidToHolders)}</span>
+            <span className="k">paid to creators</span>
+            <span className="v">{fmtEth(paidToCreators)}</span>
           </div>
           <div className="chip chip-accent">
             <span className="k">in open salvos</span>
@@ -188,14 +188,14 @@ export default function Home() {
           />
           <Column
             title="In the trenches"
-            sub="Trading live on the curve. Stake what you hold and earn ETH from every buy and sell."
+            sub="Trading live on the curve. Every trade pays the creator, so builders stick around."
             color="var(--green)"
             items={live}
             empty="Nothing live yet."
           />
           <Column
             title="Over the top"
-            sub="Raised 2.8 ETH and graduated. Liquidity locked forever, stakers keep earning."
+            sub="Raised 2.8 ETH and graduated. Liquidity locked forever, creators keep earning."
             color="var(--gold)"
             items={graduating}
             empty="No graduations yet. The first one is yours to make."

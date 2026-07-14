@@ -3,7 +3,7 @@
 // Denominations match the contract (ETH). Swap these calls for evmClient
 // once the contract is live (see chain/evmClient.ts).
 import {
-  CURVE_SUPPLY, FEE_PCT, GRADUATION_ETH, HOLDER_SHARE, INITIAL_VIRTUAL_ETH,
+  CREATOR_SHARE, CURVE_SUPPLY, FEE_PCT, GRADUATION_ETH, INITIAL_VIRTUAL_ETH,
   INITIAL_VIRTUAL_TOKENS, SALVO_DURATION_MS, SALVO_GLOBAL_CAP, SALVO_WALLET_CAP,
   spotPrice, tokensOutForEth,
 } from './curve'
@@ -69,12 +69,8 @@ function make(partial: Partial<Launch> & { name: string; symbol: string }): Laun
     virtualTokens: INITIAL_VIRTUAL_TOKENS,
     realEth: 0,
     realTokens: CURVE_SUPPLY,
-    lifetimeHolderFees: 0,
     creatorEarned: 0,
-    totalStakedPct: 0,
     yourBalance: 0,
-    yourStaked: 0,
-    yourClaimable: 0,
     priceHistory: [],
     holders: 0,
     ...partial,
@@ -94,8 +90,7 @@ function applyBuy(l: Launch, grossEth: number) {
   l.realTokens -= bought
   l.volumeEth += grossEth
   l.txns += 1
-  l.lifetimeHolderFees += fee * HOLDER_SHARE
-  l.creatorEarned += fee * 0.25
+  l.creatorEarned += fee * CREATOR_SHARE
   l.priceHistory = [...l.priceHistory.slice(-59), spotPrice(l.virtualEth, l.virtualTokens)]
   if (l.realEth >= GRADUATION_ETH && l.phase !== 'graduating') {
     l.phase = 'graduating'
@@ -117,11 +112,11 @@ function seed() {
   launches = [
     make({ name: 'Trench Rat', symbol: 'RAT', salvoEndsAt: now + 87_000, salvoCommitted: 0.32, salvoWallets: 19, holders: 0, socials: socialsFor('RAT') }),
     make({ name: 'Over The Top', symbol: 'CHARGE', salvoEndsAt: now + 41_000, salvoCommitted: 0.74, salvoWallets: 42, holders: 0, socials: { x: 'https://x.com/search?q=%24CHARGE' } }),
-    make({ name: 'Mudlark', symbol: 'MUD', phase: 'live', createdAt: now - 32 * 60_000, holders: 143, totalStakedPct: 31, socials: socialsFor('MUD') }),
-    make({ name: 'Iron Rations', symbol: 'RATION', phase: 'live', createdAt: now - 2.4 * 3_600_000, holders: 402, totalStakedPct: 44, socials: { x: 'https://x.com/search?q=%24RATION', telegram: 'https://t.me/s/ration' } }),
-    make({ name: 'Stand To', symbol: 'STANDTO', phase: 'live', createdAt: now - 5.1 * 3_600_000, holders: 611, totalStakedPct: 52, socials: socialsFor('STANDTO') }),
-    make({ name: 'Duckboard', symbol: 'DUCK', phase: 'live', createdAt: now - 9 * 3_600_000, holders: 988, totalStakedPct: 58, socials: { x: 'https://x.com/search?q=%24DUCK' } }),
-    make({ name: 'Creeping Barrage', symbol: 'BARRAGE', phase: 'live', createdAt: now - 14 * 3_600_000, holders: 1843, totalStakedPct: 61, socials: socialsFor('BARRAGE') }),
+    make({ name: 'Mudlark', symbol: 'MUD', phase: 'live', createdAt: now - 32 * 60_000, holders: 143, socials: socialsFor('MUD') }),
+    make({ name: 'Iron Rations', symbol: 'RATION', phase: 'live', createdAt: now - 2.4 * 3_600_000, holders: 402, socials: { x: 'https://x.com/search?q=%24RATION', telegram: 'https://t.me/s/ration' } }),
+    make({ name: 'Stand To', symbol: 'STANDTO', phase: 'live', createdAt: now - 5.1 * 3_600_000, holders: 611, socials: socialsFor('STANDTO') }),
+    make({ name: 'Duckboard', symbol: 'DUCK', phase: 'live', createdAt: now - 9 * 3_600_000, holders: 988, socials: { x: 'https://x.com/search?q=%24DUCK' } }),
+    make({ name: 'Creeping Barrage', symbol: 'BARRAGE', phase: 'live', createdAt: now - 14 * 3_600_000, holders: 1843, socials: socialsFor('BARRAGE') }),
   ]
   // Walk the live curves to plausible depths (in ETH).
   const depths = { MUD: 0.35, RATION: 0.9, STANDTO: 1.5, DUCK: 2.1, BARRAGE: 2.75 } as Record<string, number>
@@ -166,11 +161,6 @@ function tick() {
       applyBuy(l, spent)
       if (Math.random() < 0.5) pushEvent('buy', `${wal()} bought ${spent.toFixed(3)} ETH of $${l.symbol}`)
       if (Math.random() < 0.3) l.holders += 1
-      // Stakers accrue their cut of the fees just simulated.
-      if (l.yourStaked > 0 && l.totalStakedPct > 0) {
-        const stakedTokens = (l.totalStakedPct / 100) * CURVE_SUPPLY
-        l.yourClaimable += (l.lifetimeHolderFees * 0.002 * l.yourStaked) / stakedTokens
-      }
     }
   }
   notify()
@@ -211,8 +201,7 @@ export function sell(mint: string, tokens: number) {
   l.yourBalance -= amt
   l.volumeEth += gross
   l.txns += 1
-  l.lifetimeHolderFees += gross * FEE_PCT * HOLDER_SHARE
-  l.creatorEarned += gross * FEE_PCT * 0.25
+  l.creatorEarned += gross * FEE_PCT * CREATOR_SHARE
   l.priceHistory = [...l.priceHistory.slice(-59), spotPrice(l.virtualEth, l.virtualTokens)]
   pushEvent('sell', `you sold ${fmtM(amt)} $${l.symbol}`)
   notify()
@@ -220,33 +209,6 @@ export function sell(mint: string, tokens: number) {
 
 function fmtM(n: number): string {
   return n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : `${(n / 1_000).toFixed(0)}K`
-}
-
-export function stake(mint: string, tokens: number) {
-  const l = launches.find((x) => x.mint === mint)
-  if (!l) return
-  const amt = Math.min(tokens, l.yourBalance)
-  if (amt <= 0) return
-  l.yourBalance -= amt
-  l.yourStaked += amt
-  notify()
-}
-
-export function unstake(mint: string, tokens: number) {
-  const l = launches.find((x) => x.mint === mint)
-  if (!l) return
-  const amt = Math.min(tokens, l.yourStaked)
-  if (amt <= 0) return
-  l.yourStaked -= amt
-  l.yourBalance += amt
-  notify()
-}
-
-export function claimRewards(mint: string) {
-  const l = launches.find((x) => x.mint === mint)
-  if (!l) return
-  l.yourClaimable = 0
-  notify()
 }
 
 export function createLaunch(name: string, symbol: string, image?: string, socials?: Socials): string {

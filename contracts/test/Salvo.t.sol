@@ -88,45 +88,17 @@ contract SalvoTest is Test {
         // (same clearing price), allowing 1 wei of rounding.
         assertApproxEqAbs(aliceTokens, bobTokens * 2, 1);
 
-        // ── Live trading: fees split and booked ──
+        // ── Live trading: fee split between creator and treasury ──
         uint256 treasuryOwedBefore = salvo.owed(treasury);
         uint256 creatorOwedBefore = salvo.owed(creator);
         uint256 quoted = salvo.quoteBuy(token, 0.5 ether);
         vm.prank(carol);
         salvo.buy{value: 0.5 ether}(token, quoted);
         assertEq(t.balanceOf(carol), quoted);
-        assertGt(salvo.owed(treasury), treasuryOwedBefore);
-        assertGt(salvo.owed(creator), creatorOwedBefore);
-
-        // ── Staking: earn ETH from the next trade ──
-        uint256 minStake = salvo.minStake();
-        vm.startPrank(carol);
-        t.approve(address(salvo), type(uint256).max);
-        salvo.stake(token, minStake);
-        vm.stopPrank();
-
-        vm.prank(dave);
-        salvo.buy{value: 0.3 ether}(token, 0);
-        assertGt(salvo.pendingRewards(token, carol), 0);
-
-        uint256 carolEthBefore = carol.balance;
-        vm.prank(carol);
-        salvo.claimRewards(token);
-        assertGt(carol.balance, carolEthBefore);
-
-        // ── Flash-stake protection ──
-        vm.prank(carol);
-        vm.expectRevert(Salvo.StakeLocked.selector);
-        salvo.unstake(token, minStake);
-
-        vm.warp(block.timestamp + salvo.stakeCooldown() + 1);
-        vm.prank(carol);
-        salvo.unstake(token, minStake);
-
-        // ── Dust-stake protection ──
-        vm.prank(carol);
-        vm.expectRevert(Salvo.StakeTooSmall.selector);
-        salvo.stake(token, 1);
+        uint256 tradeFee = (0.5 ether * salvo.feeBps()) / 10_000;
+        uint256 creatorCut = (tradeFee * salvo.creatorShareBps()) / 10_000;
+        assertEq(salvo.owed(creator) - creatorOwedBefore, creatorCut);
+        assertEq(salvo.owed(treasury) - treasuryOwedBefore, tradeFee - creatorCut);
 
         // ── Graduate: buy until the curve fills ──
         vm.deal(dave, 100 ether);
@@ -145,20 +117,19 @@ contract SalvoTest is Test {
         // Unsold curve inventory burned at graduation.
         assertLt(t.totalSupply(), salvo.TOTAL_SUPPLY());
 
-        // ── Post-graduation trading + fee flow continue ──
-        uint256 lifetimeBefore = _lifetimeHolderFees(token);
+        // ── Post-graduation trading + creator fee flow continue ──
+        uint256 creatorBeforePostGrad = salvo.owed(creator);
         vm.prank(dave);
         salvo.buy{value: 0.1 ether}(token, 0);
         vm.startPrank(dave);
         t.approve(address(salvo), type(uint256).max);
         salvo.sell(token, t.balanceOf(dave) / 2, 0);
         vm.stopPrank();
-        assertGt(_lifetimeHolderFees(token), lifetimeBefore);
+        assertGt(salvo.owed(creator), creatorBeforePostGrad);
 
         // ── Solvency: contract holds at least everything it owes ──
         (uint256 realEth,, uint256 poolEth2,) = salvo.curveState(token);
-        uint256 liabilities = realEth + poolEth2 + salvo.owed(treasury) + salvo.owed(creator)
-            + salvo.owed(carol) + salvo.pendingRewards(token, carol) + _pendingHolderRewards(token);
+        uint256 liabilities = realEth + poolEth2 + salvo.owed(treasury) + salvo.owed(creator);
         assertGe(address(salvo).balance, liabilities);
 
         // ── Withdrawals actually pay ──
@@ -166,6 +137,11 @@ contract SalvoTest is Test {
         vm.prank(treasury);
         salvo.withdraw();
         assertGt(treasury.balance, treasuryBefore);
+
+        uint256 creatorEthBefore = creator.balance;
+        vm.prank(creator);
+        salvo.withdraw();
+        assertGt(creator.balance, creatorEthBefore);
     }
 
     function test_roundTripNeverProfits() public {
@@ -184,39 +160,16 @@ contract SalvoTest is Test {
         assertLt(carol.balance - before, spend, "round trip profited");
     }
 
-    function _lifetimeHolderFees(address token) internal view returns (uint256 v) {
-        (,,,,,,,,,,,,,,,,, v,) = _launchTuple(token);
-    }
+    function test_feeSplitTunable() public {
+        // Owner can retune the split within bounds; strangers cannot.
+        salvo.setFeeSplit(100, 4_000);
+        assertEq(salvo.creatorShareBps(), 4_000);
 
-    function _pendingHolderRewards(address token) internal view returns (uint256 v) {
-        (,,,,,,,,,,,,,,,, v,,) = _launchTuple(token);
-    }
+        vm.prank(alice);
+        vm.expectRevert(Salvo.NotOwner.selector);
+        salvo.setFeeSplit(100, 4_000);
 
-    function _launchTuple(address token)
-        internal
-        view
-        returns (
-            address,
-            uint64,
-            uint64,
-            Salvo.Phase,
-            bool,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            string memory
-        )
-    {
-        return salvo.launches(token);
+        vm.expectRevert(bytes("bounds"));
+        salvo.setFeeSplit(400, 4_000);
     }
 }

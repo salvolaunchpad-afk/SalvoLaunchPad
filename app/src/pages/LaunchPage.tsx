@@ -134,7 +134,7 @@ export default function LaunchPage() {
           </button>
         </div>
         <p className="note" style={{ marginTop: 8 }}>
-          Costs a flat 0.0005 ETH platform fee plus gas. You earn 25% of every trade
+          Costs a flat 0.0005 ETH platform fee plus gas. You earn 50% of every trade
           fee on your token, forever.
         </p>
       </div>
@@ -154,12 +154,12 @@ export default function LaunchPage() {
         <div className="hiw-step">
           <div className="hiw-num">03 · LIVE</div>
           <div className="hiw-title">Trade on the curve</div>
-          <div className="hiw-body">1% fee on every trade: 0.5% to staked holders (paid in ETH), 0.25% to the creator, 0.25% to the protocol. Holding pays.</div>
+          <div className="hiw-body">1% fee on every trade, half of it paid to you in ETH, on every single trade, forever. Building pays.</div>
         </div>
         <div className="hiw-step">
           <div className="hiw-num">04 · GRADUATION</div>
           <div className="hiw-title">Over the top at 2.8 ETH</div>
-          <div className="hiw-body">Curve liquidity plus 200M reserved tokens seed the Salvo pool, where the same fee split keeps flowing to stakers after graduation.</div>
+          <div className="hiw-body">Curve liquidity plus 200M reserved tokens seed the Salvo pool, where the same fee split keeps paying you after graduation.</div>
         </div>
       </div>
     </main>

@@ -13,33 +13,31 @@ import {SalvoToken} from "./SalvoToken.sol";
 ///        protocol is the only LP, so liquidity is locked by construction
 ///        and the fee split keeps paying stakers forever).
 ///
-/// Fees: 1% of ETH notional on every trade, split 50% staked holders /
-/// 25% creator / 25% protocol treasury. Flat launch fee and graduation fee
-/// on top. All fee payouts are pull-based (credited to `owed`, withdrawn
-/// via withdraw()) so no recipient can grief trades by reverting.
+/// Fees: 1% of ETH notional on every trade, split between the token's
+/// creator and the protocol treasury (shares owner-tunable; a further
+/// holder-facing mechanic may claim a slice later). Flat launch fee and
+/// graduation fee on top. All fee payouts are pull-based (credited to
+/// `owed`, withdrawn via withdraw()) so no recipient can grief trades by
+/// reverting.
 contract Salvo {
-    // ── Config (owner-tunable, defaults mirror the Solana deployment) ──
+    // ── Config (owner-tunable) ─────────────────────────────────────────
     address public owner;
     address public treasury;
 
     uint256 public feeBps = 100; // 1%
-    uint256 public holderShareBps = 5_000; // of the fee
-    uint256 public creatorShareBps = 2_500; // of the fee; protocol gets the rest
+    uint256 public creatorShareBps = 5_000; // of the fee; protocol gets the rest
     uint256 public launchFee = 0.0005 ether;
     uint256 public migrationFee = 0.05 ether;
     uint256 public salvoDuration = 120;
     uint256 public salvoWalletCap = 0.05 ether;
     uint256 public salvoGlobalCap = 1.25 ether;
     uint256 public graduationEth = 2.8 ether;
-    uint256 public stakeCooldown = 300;
-    uint256 public minStake = 1_000e18;
 
     uint256 public constant TOTAL_SUPPLY = 1_000_000_000e18;
     uint256 public constant CURVE_SUPPLY = 800_000_000e18;
     uint256 public constant LP_RESERVE = TOTAL_SUPPLY - CURVE_SUPPLY;
     uint256 public constant VIRTUAL_ETH = 1 ether;
     uint256 public constant VIRTUAL_TOKENS = 1_073_000_000e18;
-    uint256 private constant ACC_PRECISION = 1e12;
 
     // ── Per-launch state ───────────────────────────────────────────────
     enum Phase {
@@ -67,27 +65,17 @@ contract Salvo {
         // Post-graduation pool (real reserves, protocol is the only LP).
         uint256 poolEth;
         uint256 poolTokens;
-        // Holder fee-share staking (accumulator pattern).
-        uint256 totalStaked;
-        uint256 accRewardPerShare;
-        uint256 pendingHolderRewards;
-        uint256 lifetimeHolderFees;
+        /// Lifetime fees earned by the creator, for display.
+        uint256 lifetimeCreatorFees;
         string uri;
-    }
-
-    struct Position {
-        uint256 amount;
-        uint256 rewardDebt;
-        uint256 stakedAt;
     }
 
     mapping(address => Launch) public launches;
     mapping(address => address[]) private _committers;
     mapping(address => mapping(address => uint256)) public commits;
-    mapping(address => mapping(address => Position)) public positions;
 
-    /// Pull-payment ledger: creator fees, protocol fees, and harvested
-    /// staking rewards all accumulate here until withdraw().
+    /// Pull-payment ledger: creator fees and protocol fees accumulate
+    /// here until withdraw().
     mapping(address => uint256) public owed;
 
     address[] public allTokens;
@@ -101,8 +89,6 @@ contract Salvo {
         address indexed token, address indexed trader, bool isBuy, uint256 ethAmount, uint256 tokenAmount, Phase phase
     );
     event Graduated(address indexed token, uint256 poolEth, uint256 poolTokens);
-    event Staked(address indexed token, address indexed user, uint256 amount, uint256 totalStaked);
-    event Unstaked(address indexed token, address indexed user, uint256 amount, uint256 totalStaked);
     event Withdrawn(address indexed user, uint256 amount);
 
     // ── Errors ─────────────────────────────────────────────────────────
@@ -114,9 +100,6 @@ contract Salvo {
     error SlippageExceeded();
     error InsufficientCurveTokens();
     error ZeroAmount();
-    error StakeLocked();
-    error StakeTooSmall();
-    error InsufficientStake();
     error WrongFee();
     error NotOwner();
     error Reentrancy();
@@ -300,7 +283,8 @@ contract Salvo {
     /// Graduation: take the platform fee, burn unsold curve inventory, and
     /// flip the SAME contract into a real-reserve pool seeded with the
     /// raised ETH + the 200M reserve. The protocol is the only LP, so the
-    /// liquidity is locked by construction and fees keep flowing to stakers.
+    /// liquidity is locked by construction and the fee split keeps paying
+    /// the creator after graduation.
     function _graduate(address token, Launch storage l) internal {
         uint256 fee = migrationFee < l.realEth ? migrationFee : l.realEth;
         owed[treasury] += fee;
@@ -315,83 +299,19 @@ contract Salvo {
         emit Graduated(token, l.poolEth, l.poolTokens);
     }
 
-    // ── Staking: hold the token, earn ETH from every trade ─────────────
-
-    function stake(address token, uint256 amount) external nonReentrant {
-        Launch storage l = launches[token];
-        if (l.phase != Phase.Live && l.phase != Phase.Graduated) revert PhaseMismatch();
-        if (amount == 0) revert ZeroAmount();
-        Position storage p = positions[token][msg.sender];
-        if (p.amount + amount < minStake) revert StakeTooSmall();
-
-        _harvest(l, p);
-        SalvoToken(token).transferFrom(msg.sender, address(this), amount);
-        p.amount += amount;
-        p.stakedAt = block.timestamp;
-        l.totalStaked += amount;
-        _bookHolderRewards(l, 0); // fold any pending fees now that stake exists
-        p.rewardDebt = (p.amount * l.accRewardPerShare) / ACC_PRECISION;
-
-        emit Staked(token, msg.sender, amount, l.totalStaked);
-    }
-
-    function unstake(address token, uint256 amount) external nonReentrant {
-        Launch storage l = launches[token];
-        Position storage p = positions[token][msg.sender];
-        if (amount == 0) revert ZeroAmount();
-        if (p.amount < amount) revert InsufficientStake();
-        if (block.timestamp < p.stakedAt + stakeCooldown) revert StakeLocked();
-
-        _harvest(l, p);
-        p.amount -= amount;
-        l.totalStaked -= amount;
-        p.rewardDebt = (p.amount * l.accRewardPerShare) / ACC_PRECISION;
-        SalvoToken(token).transfer(msg.sender, amount);
-
-        emit Unstaked(token, msg.sender, amount, l.totalStaked);
-    }
-
-    /// Harvest accrued rewards into `owed` and withdraw everything owed.
-    function claimRewards(address token) external nonReentrant {
-        Launch storage l = launches[token];
-        Position storage p = positions[token][msg.sender];
-        _harvest(l, p);
-        p.rewardDebt = (p.amount * l.accRewardPerShare) / ACC_PRECISION;
-        _withdraw(msg.sender);
-    }
-
-    /// Withdraw everything the caller is owed (creator fees, protocol
-    /// fees, harvested staking rewards).
+    /// Withdraw everything the caller is owed (creator fees or protocol
+    /// fees).
     function withdraw() external nonReentrant {
         _withdraw(msg.sender);
     }
 
-    // ── Internal fee + reward accounting ───────────────────────────────
+    // ── Internal fee accounting ────────────────────────────────────────
 
     function _bookFees(Launch storage l, uint256 fee) internal {
-        uint256 holderCut = (fee * holderShareBps) / 10_000;
         uint256 creatorCut = (fee * creatorShareBps) / 10_000;
         owed[l.creator] += creatorCut;
-        owed[treasury] += fee - holderCut - creatorCut;
-        _bookHolderRewards(l, holderCut);
-    }
-
-    function _bookHolderRewards(Launch storage l, uint256 amount) internal {
-        uint256 total = amount + l.pendingHolderRewards;
-        if (l.totalStaked > 0 && total > 0) {
-            l.accRewardPerShare += (total * ACC_PRECISION) / l.totalStaked;
-            l.pendingHolderRewards = 0;
-        } else {
-            l.pendingHolderRewards = total;
-        }
-        l.lifetimeHolderFees += amount;
-    }
-
-    function _harvest(Launch storage l, Position storage p) internal {
-        if (p.amount == 0) return;
-        uint256 accrued = (p.amount * l.accRewardPerShare) / ACC_PRECISION;
-        uint256 pending = accrued > p.rewardDebt ? accrued - p.rewardDebt : 0;
-        if (pending > 0) owed[msg.sender] += pending;
+        owed[treasury] += fee - creatorCut;
+        l.lifetimeCreatorFees += creatorCut;
     }
 
     function _withdraw(address to) internal {
@@ -463,19 +383,16 @@ contract Salvo {
         return gross - (gross * feeBps) / 10_000;
     }
 
-    function pendingRewards(address token, address user) external view returns (uint256) {
-        Launch storage l = launches[token];
-        Position storage p = positions[token][user];
-        if (p.amount == 0) return 0;
-        uint256 accrued = (p.amount * l.accRewardPerShare) / ACC_PRECISION;
-        return accrued > p.rewardDebt ? accrued - p.rewardDebt : 0;
-    }
-
     // ── Admin ──────────────────────────────────────────────────────────
 
-    function setDurations(uint256 salvoDuration_, uint256 stakeCooldown_) external onlyOwner {
+    function setSalvoDuration(uint256 salvoDuration_) external onlyOwner {
         salvoDuration = salvoDuration_;
-        stakeCooldown = stakeCooldown_;
+    }
+
+    function setFeeSplit(uint256 feeBps_, uint256 creatorShareBps_) external onlyOwner {
+        require(feeBps_ <= 300 && creatorShareBps_ <= 10_000, "bounds");
+        feeBps = feeBps_;
+        creatorShareBps = creatorShareBps_;
     }
 
     function setFees(uint256 launchFee_, uint256 migrationFee_) external onlyOwner {

@@ -21,8 +21,8 @@ const PHASES = [
     title: 'Trade on the curve',
     body: 'After the salvo settles, the token trades on a bonding curve. The price comes from a formula, the ETH backing it is locked in the contract, and anyone can buy or sell at any time. This is where a token lives most of its life.',
     points: [
-      '1% fee on every trade: 0.5% to staked holders, 0.25% to the creator, 0.25% to the protocol',
-      'Stake your tokens to earn ETH from every trade, claim whenever you like',
+      '1% fee on every trade: half to the creator, half to the platform',
+      'Creators earn in ETH on every single trade, forever',
       'Liquidity cannot be pulled. You can always sell back to the curve',
     ],
   },
@@ -31,7 +31,7 @@ const PHASES = [
     tag: 'OVER THE TOP · AT 2.8 ETH RAISED',
     color: 'var(--gold)',
     title: 'Graduation',
-    body: 'When 2.8 ETH of net buying fills the curve, the token graduates. The raised ETH plus 200M reserved tokens seed a permanent liquidity pool, and trading continues there forever. The same fee split keeps paying stakers and the creator after graduation.',
+    body: 'When 2.8 ETH of net buying fills the curve, the token graduates. The raised ETH plus 200M reserved tokens seed a permanent liquidity pool, and trading continues there forever. The same fee split keeps paying the creator after graduation.',
     points: [
       'Pool liquidity is protocol-owned and locked by construction',
       'Only the strongest launches make it. This column is the flex',
@@ -50,12 +50,8 @@ const FAQ = [
     a: 'On other launchpads, bots land in the first block and buy before you, then sell into your entry. In a batch there is no "before you". One price for the whole window means a sniper\'s only edge, speed, is worth nothing.',
   },
   {
-    q: 'What do holders actually earn?',
-    a: 'Stake your tokens and you earn 50% of every trade fee, paid in ETH, proportional to your share of the staked supply. It accrues on every buy and sell, win or lose. Rewards claim any time; unstaking unlocks 5 minutes after your last stake so bots can\'t flash-stake around big trades.',
-  },
-  {
     q: 'What does the creator earn?',
-    a: '25% of every trade fee on their token, forever, paid straight to their wallet on each trade. Creators who keep their community trading out-earn creators who dump.',
+    a: 'Half of every trade fee on their token, in ETH, forever: that is 0.5% of all volume, on the curve and after graduation. Creators who keep their community trading out-earn creators who dump, by design.',
   },
   {
     q: 'Can the dev rug the liquidity?',
@@ -82,7 +78,7 @@ export default function HowItWorks() {
           <p className="hero-sub">
             Every token on Salvo moves through three phases, in one direction, with
             no exceptions. Two rules make it different from every other launchpad:
-            nobody can snipe the start, and holding pays you in ETH.
+            nobody can snipe the start, and creators get paid in ETH forever.
           </p>
         </div>
       </section>
@@ -105,15 +101,15 @@ export default function HowItWorks() {
       </div>
       <div className="panel" style={{ maxWidth: 820 }}>
         <div className="fee-split">
-          <div className="fs-hold" style={{ width: '50%' }}>50% staked holders</div>
-          <div className="fs-creator" style={{ width: '25%' }}>25% creator</div>
-          <div className="fs-proto" style={{ width: '25%' }}>25% protocol</div>
+          <div className="fs-creator" style={{ width: '50%' }}>50% creator</div>
+          <div className="fs-proto" style={{ width: '50%' }}>50% platform</div>
         </div>
         <p className="note" style={{ fontSize: 13 }}>
-          Every buy and sell pays a 1% fee, split as above. On a 1 ETH trade that is
-          0.005 ETH to the people staking the token, 0.0025 ETH to its creator, and
-          0.0025 ETH to the platform. Rewards are paid in ETH, not in the token, so
-          staking yield is real regardless of where the chart goes.
+          Every buy and sell pays a 1% fee, split evenly between the token's creator
+          and the platform. On a 1 ETH trade that is 0.005 ETH straight to the
+          creator's wallet, in ETH, win or lose, curve or pool. The split is a
+          contract parameter, so future holder-facing mechanics can claim a slice
+          without a redeploy.
         </p>
       </div>
 

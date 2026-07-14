@@ -27,12 +27,8 @@ export interface Launch {
   virtualTokens: number
   realEth: number
   realTokens: number
-  lifetimeHolderFees: number
   creatorEarned: number
-  totalStakedPct: number
   yourBalance: number
-  yourStaked: number
-  yourClaimable: number
   priceHistory: number[]
   holders: number
 }

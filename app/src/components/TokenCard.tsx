@@ -72,8 +72,8 @@ export default function TokenCard({ l }: { l: Launch }) {
             <div style={{ width: `${progress}%` }} />
           </div>
           <div className="row">
-            <span className="k">{l.holders} holders · {l.totalStakedPct}% staked</span>
-            <span className="v green-text">{fmtEth(l.lifetimeHolderFees, 3)} → holders</span>
+            <span className="k">{l.holders} holders</span>
+            <span className="v green-text">{fmtEth(l.creatorEarned, 3)} → creator</span>
           </div>
         </>
       )}

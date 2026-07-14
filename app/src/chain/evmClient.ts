@@ -50,24 +50,6 @@ export const salvoWrites = {
     args: [token, tokens, minEthOut],
   }),
 
-  stake: (token: `0x${string}`, tokens: bigint) => ({
-    ...base,
-    functionName: 'stake',
-    args: [token, tokens],
-  }),
-
-  unstake: (token: `0x${string}`, tokens: bigint) => ({
-    ...base,
-    functionName: 'unstake',
-    args: [token, tokens],
-  }),
-
-  claimRewards: (token: `0x${string}`) => ({
-    ...base,
-    functionName: 'claimRewards',
-    args: [token],
-  }),
-
   withdraw: () => ({
     ...base,
     functionName: 'withdraw',

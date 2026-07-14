@@ -8,7 +8,7 @@ import {
   marketCapEth, spotPrice, tokensOutForEth, ethOutForTokens,
 } from '../curve'
 import { useLaunch, useNow, useEthPrice } from '../hooks'
-import { buy, claimRewards, commitToSalvo, sell, stake, unstake } from '../mock'
+import { buy, commitToSalvo, sell } from '../mock'
 import { countdown, fmtNum, fmtPrice, fmtEth, fmtUsd, timeAgo } from '../util'
 
 export default function TokenPage() {
@@ -40,7 +40,6 @@ export default function TokenPage() {
         </div>
         <div>
           {l.phase === 'salvo' ? <SalvoPanel l={l} /> : <TradePanel l={l} />}
-          {l.phase !== 'salvo' && <StakePanel l={l} />}
         </div>
       </div>
     </main>
@@ -121,18 +120,16 @@ function FeePanel({ l }: { l: L }) {
     <div className="panel">
       <div className="panel-title">Where every 1% fee goes</div>
       <div className="fee-split">
-        <div className="fs-hold" style={{ width: '50%' }}>50% staked holders</div>
-        <div className="fs-creator" style={{ width: '25%' }}>25% creator</div>
-        <div className="fs-proto" style={{ width: '25%' }}>25% protocol</div>
+        <div className="fs-creator" style={{ width: '50%' }}>50% creator</div>
+        <div className="fs-proto" style={{ width: '50%' }}>50% platform</div>
       </div>
       <div className="stat-grid">
-        <div className="stat"><div className="k">paid to holders so far</div><div className="v green-text">{fmtEth(l.lifetimeHolderFees, 4)}</div></div>
-        <div className="stat"><div className="k">creator earned</div><div className="v">{fmtEth(l.creatorEarned, 4)}</div></div>
-        <div className="stat"><div className="k">supply staked</div><div className="v">{l.totalStakedPct}%</div></div>
+        <div className="stat"><div className="k">creator earned</div><div className="v green-text">{fmtEth(l.creatorEarned, 4)}</div></div>
+        <div className="stat"><div className="k">creator</div><div className="v" style={{ fontSize: 13 }}>{l.creator}</div></div>
       </div>
       <p className="note" style={{ marginTop: 10 }}>
-        Rewards are paid in ETH, not in the token, so staking earns yield from
-        real trading volume, win or lose.
+        Creators earn in ETH on every single trade, forever. Building a token
+        people keep trading beats dumping it, by design.
       </p>
     </div>
   )
@@ -220,35 +217,3 @@ function TradePanel({ l }: { l: L }) {
   )
 }
 
-function StakePanel({ l }: { l: L }) {
-  const [amt, setAmt] = useState('')
-  const amount = parseFloat(amt) || 0
-  return (
-    <div className="panel">
-      <div className="panel-title">Stake and earn 50% of all fees</div>
-      <div className="stat-grid">
-        <div className="stat"><div className="k">your balance</div><div className="v">{fmtNum(l.yourBalance)}</div></div>
-        <div className="stat"><div className="k">your staked</div><div className="v">{fmtNum(l.yourStaked)}</div></div>
-      </div>
-      <div className="input-row">
-        <input value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="amount" inputMode="decimal" />
-        <button className="btn" onClick={() => setAmt(String(Math.floor(l.yourBalance)))}>max</button>
-      </div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button className="btn btn-block" disabled={amount <= 0 || amount > l.yourBalance} onClick={() => { stake(l.mint, amount); setAmt('') }}>Stake</button>
-        <button className="btn btn-block" disabled={amount <= 0 || amount > l.yourStaked} onClick={() => { unstake(l.mint, amount); setAmt('') }}>Unstake</button>
-      </div>
-      <div className="row" style={{ marginTop: 12 }}>
-        <span className="k">claimable rewards</span>
-        <span className="v green-text">{fmtEth(l.yourClaimable, 6)}</span>
-      </div>
-      <button className="btn btn-block" style={{ marginTop: 6 }} disabled={l.yourClaimable <= 0} onClick={() => claimRewards(l.mint)}>
-        Claim ETH
-      </button>
-      <p className="note" style={{ marginTop: 10, fontSize: 11.5 }}>
-        Minimum stake 1,000 tokens. Unstaking unlocks 5 minutes after your last
-        stake, so bots can't flash-stake around big trades. Rewards claim any time.
-      </p>
-    </div>
-  )
-}
