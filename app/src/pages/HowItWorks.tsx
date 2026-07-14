@@ -63,7 +63,7 @@ const FAQ = [
   },
   {
     q: 'What stops copycat "vamp" launches?',
-    a: 'The contract enforces one buyable token per ticker, case-insensitive. Nobody can launch a second CASHCAT while yours is alive, and graduated tokens own their ticker forever. Abandoned tickers recycle after 72 hours of dormancy, and reclaiming one retires the old token to exit-only: its holders can always sell back to its locked curve, but nobody can buy in, revive it, or graduate it.',
+    a: 'On other launchpads, when a coin gets popular, people rush to launch fifty fake copies with the same name. Buyers get tricked, money gets split fifty ways, and the real coin suffers. We call these copies "vamps."\n\nOn Salvo, every coin\'s name is one of a kind. When you launch a coin, its ticker (like $CASHCAT) is locked to you. If anyone tries to launch another coin with the same name, the blockchain simply says no. It doesn\'t matter if they type it in capital letters or lowercase, the copy gets blocked automatically. No moderators, no reports, no waiting. The rules are built into the code.\n\nIf your coin succeeds and graduates, the name is yours forever.\n\nWhat about names stuck on dead coins? A coin counts as dead when it\'s at least 3 days old, never graduated, and has less than 0.15 ETH (around $300) of liquidity left in its trading pool, meaning almost everyone has already sold and walked away. Only then can someone new take the name. When that happens, the old coin is retired: nobody can buy it anymore, but anyone still holding it can always sell and get their money out. Nothing is ever taken from anyone.\n\nSimple version: one name, one coin. Your idea stays yours.',
   },
   {
     q: 'What chain is this on?',
@@ -124,7 +124,7 @@ export default function HowItWorks() {
         {FAQ.map((f) => (
           <div key={f.q} className="hiw-step">
             <div className="hiw-title">{f.q}</div>
-            <div className="hiw-body">{f.a}</div>
+            <div className="hiw-body" style={{ whiteSpace: 'pre-line' }}>{f.a}</div>
           </div>
         ))}
       </div>
