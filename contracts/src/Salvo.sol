@@ -33,6 +33,12 @@ contract Salvo {
     uint256 public salvoGlobalCap = 1.25 ether;
     uint256 public graduationEth = 2.8 ether;
 
+    // Anti-vamp: one live token per ticker. A ticker frees up only if its
+    // token never graduated, is older than reclaimDelay, and its curve is
+    // effectively dormant.
+    uint256 public dormancyFloor = 0.15 ether;
+    uint256 public reclaimDelay = 72 hours;
+
     uint256 public constant TOTAL_SUPPLY = 1_000_000_000e18;
     uint256 public constant CURVE_SUPPLY = 800_000_000e18;
     uint256 public constant LP_RESERVE = TOTAL_SUPPLY - CURVE_SUPPLY;
@@ -74,6 +80,9 @@ contract Salvo {
     mapping(address => address[]) private _committers;
     mapping(address => mapping(address => uint256)) public commits;
 
+    /// Case-insensitive ticker registry: keccak(uppercased symbol) => token.
+    mapping(bytes32 => address) public tickerToToken;
+
     /// Pull-payment ledger: creator fees and protocol fees accumulate
     /// here until withdraw().
     mapping(address => uint256) public owed;
@@ -103,6 +112,8 @@ contract Salvo {
     error WrongFee();
     error NotOwner();
     error Reentrancy();
+    error TickerTaken();
+    error BadTicker();
 
     // ── Reentrancy guard ───────────────────────────────────────────────
     uint256 private _locked = 1;
@@ -135,7 +146,14 @@ contract Salvo {
         if (msg.value != launchFee) revert WrongFee();
         owed[treasury] += msg.value;
 
+        // Anti-vamp: the ticker must be unused, or held by a dormant
+        // never-graduated token past the reclaim delay.
+        bytes32 key = _tickerKey(symbol);
+        address holder = tickerToToken[key];
+        if (holder != address(0) && !_reclaimable(holder)) revert TickerTaken();
+
         token = address(new SalvoToken(name, symbol, address(this), TOTAL_SUPPLY));
+        tickerToToken[key] = token;
         Launch storage l = launches[token];
         l.creator = msg.sender;
         l.createdAt = uint64(block.timestamp);
@@ -314,6 +332,30 @@ contract Salvo {
         l.lifetimeCreatorFees += creatorCut;
     }
 
+    /// Uppercase-normalized ticker hash. Tickers are 1-12 chars, A-Z 0-9
+    /// only, so "CashCat", "CASHCAT", and "cashcat" are the same name.
+    function _tickerKey(string calldata symbol) internal pure returns (bytes32) {
+        bytes memory b = bytes(symbol);
+        if (b.length == 0 || b.length > 12) revert BadTicker();
+        for (uint256 i = 0; i < b.length; i++) {
+            bytes1 c = b[i];
+            if (c >= 0x61 && c <= 0x7a) {
+                c = bytes1(uint8(c) - 32);
+                b[i] = c;
+            }
+            bool ok = (c >= 0x30 && c <= 0x39) || (c >= 0x41 && c <= 0x5a);
+            if (!ok) revert BadTicker();
+        }
+        return keccak256(b);
+    }
+
+    function _reclaimable(address token) internal view returns (bool) {
+        Launch storage l = launches[token];
+        if (l.phase == Phase.Graduated) return false;
+        if (block.timestamp <= l.createdAt + reclaimDelay) return false;
+        return l.realEth < dormancyFloor;
+    }
+
     function _withdraw(address to) internal {
         uint256 amount = owed[to];
         if (amount == 0) return;
@@ -383,10 +425,22 @@ contract Salvo {
         return gross - (gross * feeBps) / 10_000;
     }
 
+    /// Launch-form helper: is this ticker free (or reclaimable), and who
+    /// holds it right now?
+    function tickerAvailable(string calldata symbol) external view returns (bool available, address holder) {
+        holder = tickerToToken[_tickerKey(symbol)];
+        available = holder == address(0) || _reclaimable(holder);
+    }
+
     // ── Admin ──────────────────────────────────────────────────────────
 
     function setSalvoDuration(uint256 salvoDuration_) external onlyOwner {
         salvoDuration = salvoDuration_;
+    }
+
+    function setAntiVamp(uint256 dormancyFloor_, uint256 reclaimDelay_) external onlyOwner {
+        dormancyFloor = dormancyFloor_;
+        reclaimDelay = reclaimDelay_;
     }
 
     function setFeeSplit(uint256 feeBps_, uint256 creatorShareBps_) external onlyOwner {

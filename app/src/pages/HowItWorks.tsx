@@ -62,6 +62,10 @@ const FAQ = [
     a: 'A flat 0.0005 ETH platform fee plus gas. One click, no presale, no team allocation.',
   },
   {
+    q: 'What stops copycat "vamp" launches?',
+    a: 'The contract enforces one live token per ticker, case-insensitive. Nobody can launch a second CASHCAT while yours is alive, and graduated tokens own their ticker forever. Dead tickers recycle after 72 hours of dormancy so squatters can\'t hoard names either.',
+  },
+  {
     q: 'What chain is this on?',
     a: 'Robinhood Chain, an Ethereum layer-2 that pays gas in ETH. Connect any EVM wallet like MetaMask and add the network to get started.',
   },

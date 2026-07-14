@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { createLaunch } from '../mock'
+import { createLaunch, tickerTakenBy } from '../mock'
 
 /** Cover-crop and resize to 256px so token images stay small and square. */
 async function fileToTokenImage(file: File): Promise<string> {
@@ -41,8 +41,10 @@ export default function LaunchPage() {
     }
   }
 
+  const vampedBy = tickerTakenBy(symbol)
+
   function submit() {
-    if (!name.trim() || !symbol.trim()) return
+    if (!name.trim() || !symbol.trim() || vampedBy) return
     const socials = {
       x: x.trim() || undefined,
       telegram: telegram.trim() || undefined,
@@ -50,7 +52,7 @@ export default function LaunchPage() {
     }
     const hasSocials = socials.x || socials.telegram || socials.website
     const mint = createLaunch(name.trim(), symbol.trim(), preview || undefined, hasSocials ? socials : undefined)
-    nav(`/t/${mint}`)
+    if (mint) nav(`/t/${mint}`)
   }
 
   return (
@@ -67,7 +69,16 @@ export default function LaunchPage() {
         <label>Name</label>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Trench Rat" maxLength={32} />
         <label>Ticker</label>
-        <input value={symbol} onChange={(e) => setSymbol(e.target.value)} placeholder="RAT" maxLength={10} />
+        <input value={symbol} onChange={(e) => setSymbol(e.target.value)} placeholder="RAT" maxLength={12} />
+        {vampedBy ? (
+          <p className="annot" style={{ color: 'var(--red)', marginTop: 6 }}>
+            taken by "{vampedBy}". one live token per ticker, no vamps.
+          </p>
+        ) : symbol.trim() ? (
+          <p className="annot" style={{ color: 'var(--green)', marginTop: 6 }}>
+            ${symbol.trim().toUpperCase()} is free. it's yours.
+          </p>
+        ) : null}
         <label>Image</label>
         <div
           className={`uploader${dragging ? ' dragging' : ''}`}
@@ -129,7 +140,7 @@ export default function LaunchPage() {
           one-click icons on your card and token page.
         </p>
         <div style={{ marginTop: 20 }}>
-          <button className="btn btn-accent btn-block" onClick={submit} disabled={!name.trim() || !symbol.trim()}>
+          <button className="btn btn-accent btn-block" onClick={submit} disabled={!name.trim() || !symbol.trim() || !!vampedBy}>
             Fire the opening salvo
           </button>
         </div>

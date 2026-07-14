@@ -108,6 +108,21 @@ the creator after graduation.
 | `withdraw` | fee recipients | collect accrued ETH from the `owed` ledger |
 | `setSalvoDuration` / `setFeeSplit` / `setCaps` / `setFees` / `setTreasury` | owner | tune parameters within bounds |
 
+## Anti-vamp: one live token per ticker
+
+Copycat "vamp" launches (fifty CASHCATs in ten minutes) shred liquidity
+and bury the real team. Salvo blocks them at the contract:
+
+- `createLaunch` enforces a **case-insensitive ticker registry**: tickers
+  are 1-12 chars of A-Z 0-9, and a second launch of a live ticker reverts
+  with `TickerTaken`.
+- **Graduated tokens own their ticker permanently.**
+- **Dormancy reclaim stops squatting**: a ticker frees up only if its
+  token never graduated, is older than `reclaimDelay` (72h), and its
+  curve holds less than `dormancyFloor` (0.15 ETH). Real communities
+  can't be vamped; dead names recycle.
+- `tickerAvailable(symbol)` lets the launch form check availability live.
+
 ## Known gaps before mainnet
 
 - The crank bot (auto-settle + auto-distribute) is off-chain infra still
@@ -115,5 +130,9 @@ the creator after graduation.
   it.
 - Token metadata images need decentralized hosting (IPFS pinning) wired
   into the launch flow.
+- Near graduation, a buy larger than the remaining curve inventory
+  reverts rather than partially filling; the app sizes buys via
+  `quoteBuy` so users don't hit it, but a partial-fill path would be
+  cleaner.
 - Needs an external audit. Focus areas: the batch-settle fee path,
   graduation reserve accounting, and the pull-payment ledger.

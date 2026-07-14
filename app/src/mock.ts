@@ -211,7 +211,17 @@ function fmtM(n: number): string {
   return n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : `${(n / 1_000).toFixed(0)}K`
 }
 
-export function createLaunch(name: string, symbol: string, image?: string, socials?: Socials): string {
+/** Anti-vamp mirror of the contract's ticker registry: one live token per
+ *  ticker, case-insensitive. Returns the holder's name if taken. */
+export function tickerTakenBy(symbol: string): string | null {
+  const key = symbol.trim().toUpperCase()
+  if (!key) return null
+  const holder = launches.find((l) => l.symbol.toUpperCase() === key)
+  return holder ? holder.name : null
+}
+
+export function createLaunch(name: string, symbol: string, image?: string, socials?: Socials): string | null {
+  if (tickerTakenBy(symbol)) return null
   const l = make({ name, symbol: symbol.toUpperCase(), creator: 'you', image, socials })
   launches = [l, ...launches]
   pushEvent('salvo', `$${l.symbol} just launched: salvo open, everyone fires at once`)

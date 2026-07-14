@@ -160,6 +160,58 @@ contract SalvoTest is Test {
         assertLt(carol.balance - before, spend, "round trip profited");
     }
 
+    function test_antiVamp() public {
+        _launch(); // registers RAT
+
+        // Same ticker, any casing: blocked while the original is alive.
+        uint256 fee = salvo.launchFee();
+        vm.prank(dave);
+        vm.expectRevert(Salvo.TickerTaken.selector);
+        salvo.createLaunch{value: fee}("Rat Two", "rat", "");
+
+        (bool avail,) = salvo.tickerAvailable("RAT");
+        assertFalse(avail);
+
+        // Garbage tickers rejected outright.
+        vm.prank(dave);
+        vm.expectRevert(Salvo.BadTicker.selector);
+        salvo.createLaunch{value: fee}("X", "R@T!", "");
+
+        // Dormant + past the reclaim delay: the ticker frees up.
+        vm.warp(block.timestamp + salvo.reclaimDelay() + 1);
+        (avail,) = salvo.tickerAvailable("RAT");
+        assertTrue(avail);
+        vm.prank(dave);
+        address second = salvo.createLaunch{value: fee}("Rat Reborn", "RAT", "");
+        assertTrue(second != address(0));
+    }
+
+    function test_graduatedTickerNeverReclaimable() public {
+        address token = _launch();
+        vm.warp(block.timestamp + salvo.salvoDuration() + 1);
+        salvo.settle(token);
+
+        // Buy to graduation. Small steps: an oversized final buy would
+        // exceed remaining curve inventory and revert instead of filling.
+        vm.deal(dave, 100 ether);
+        uint256 guard;
+        while (salvo.phaseOf(token) == Salvo.Phase.Live) {
+            vm.prank(dave);
+            salvo.buy{value: 0.1 ether}(token, 0);
+            guard++;
+            assertLt(guard, 200, "never graduated");
+        }
+
+        // Even long after the reclaim delay, a graduated ticker is taken.
+        vm.warp(block.timestamp + salvo.reclaimDelay() * 10);
+        (bool avail,) = salvo.tickerAvailable("RAT");
+        assertFalse(avail);
+        uint256 fee = salvo.launchFee();
+        vm.prank(dave);
+        vm.expectRevert(Salvo.TickerTaken.selector);
+        salvo.createLaunch{value: fee}("Rat Again", "RAT", "");
+    }
+
     function test_feeSplitTunable() public {
         // Owner can retune the split within bounds; strangers cannot.
         salvo.setFeeSplit(100, 4_000);

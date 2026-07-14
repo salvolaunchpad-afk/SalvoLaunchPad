@@ -77,6 +77,11 @@ const VS_ROWS = [
     them: 'The fee stream changes or dies the moment a token succeeds.',
   },
   {
+    label: 'Copycat "vamps"',
+    us: 'Blocked on-chain: one live token per ticker. Your narrative stays yours.',
+    them: 'Fifty CASHCATs in ten minutes, liquidity shredded across all of them.',
+  },
+  {
     label: 'Rug surface',
     us: 'No mint function, contract-owned liquidity, locked by construction.',
     them: 'Depends who you trust that day.',
