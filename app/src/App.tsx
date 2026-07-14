@@ -13,7 +13,7 @@ export default function App() {
     <div className="shell">
       <header className="topbar">
         <Link to="/" className="logo">
-          <span className="logo-word">SALVO</span>
+          <span className="logo-word"><span className="hl">Salvo</span></span>
           <span className="logo-tag">everyone fires at once</span>
         </Link>
         <div className="topbar-actions">

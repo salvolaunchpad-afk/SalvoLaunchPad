@@ -121,9 +121,9 @@ function FeePanel({ l }: { l: L }) {
     <div className="panel">
       <div className="panel-title">Where every 1% fee goes</div>
       <div className="fee-split">
-        <div style={{ width: '50%', background: '#0b2416', color: 'var(--green)' }}>50% staked holders</div>
-        <div style={{ width: '25%', background: '#2a1608', color: 'var(--accent)' }}>25% creator</div>
-        <div style={{ width: '25%', background: '#171b24', color: 'var(--muted)' }}>25% protocol</div>
+        <div className="fs-hold" style={{ width: '50%' }}>50% staked holders</div>
+        <div className="fs-creator" style={{ width: '25%' }}>25% creator</div>
+        <div className="fs-proto" style={{ width: '25%' }}>25% protocol</div>
       </div>
       <div className="stat-grid">
         <div className="stat"><div className="k">paid to holders so far</div><div className="v green-text">{fmtEth(l.lifetimeHolderFees, 4)}</div></div>

@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import { WagmiProvider } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
+import { RainbowKitProvider, lightTheme } from '@rainbow-me/rainbowkit'
 import { wagmiConfig } from './chain/wagmi'
 import App from './App'
 import '@rainbow-me/rainbowkit/styles.css'
@@ -11,9 +11,9 @@ import './styles.css'
 
 const queryClient = new QueryClient()
 
-const salvoTheme = darkTheme({
+const salvoTheme = lightTheme({
   accentColor: '#ff6b2b',
-  accentColorForeground: '#14100c',
+  accentColorForeground: '#1f1c17',
   borderRadius: 'medium',
   overlayBlur: 'small',
 })
