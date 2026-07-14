@@ -59,6 +59,10 @@ contract Salvo {
         uint64 salvoEndsAt;
         Phase phase;
         bool settled;
+        /// Set when this token's dormant ticker is reclaimed by a new
+        /// launch: buys and commits revert forever, sells always work, and
+        /// graduation is impossible. Exit-only wind-down.
+        bool retired;
         // Bonding curve (virtual reserves while Live).
         uint256 virtualEth;
         uint256 virtualTokens;
@@ -98,6 +102,7 @@ contract Salvo {
         address indexed token, address indexed trader, bool isBuy, uint256 ethAmount, uint256 tokenAmount, Phase phase
     );
     event Graduated(address indexed token, uint256 poolEth, uint256 poolTokens);
+    event TickerReclaimed(address indexed retiredToken, bytes32 indexed tickerKey);
     event Withdrawn(address indexed user, uint256 amount);
 
     // ── Errors ─────────────────────────────────────────────────────────
@@ -114,6 +119,7 @@ contract Salvo {
     error Reentrancy();
     error TickerTaken();
     error BadTicker();
+    error TokenRetired();
 
     // ── Reentrancy guard ───────────────────────────────────────────────
     uint256 private _locked = 1;
@@ -147,10 +153,16 @@ contract Salvo {
         owed[treasury] += msg.value;
 
         // Anti-vamp: the ticker must be unused, or held by a dormant
-        // never-graduated token past the reclaim delay.
+        // never-graduated token past the reclaim delay. Reclaiming retires
+        // the old token to exit-only so two same-name tokens can never be
+        // buyable at once.
         bytes32 key = _tickerKey(symbol);
         address holder = tickerToToken[key];
-        if (holder != address(0) && !_reclaimable(holder)) revert TickerTaken();
+        if (holder != address(0)) {
+            if (!_reclaimable(holder)) revert TickerTaken();
+            launches[holder].retired = true;
+            emit TickerReclaimed(holder, key);
+        }
 
         token = address(new SalvoToken(name, symbol, address(this), TOTAL_SUPPLY));
         tickerToToken[key] = token;
@@ -172,6 +184,7 @@ contract Salvo {
 
     function commit(address token) external payable nonReentrant {
         Launch storage l = launches[token];
+        if (l.retired) revert TokenRetired();
         if (l.phase != Phase.Salvo) revert PhaseMismatch();
         if (block.timestamp >= l.salvoEndsAt) revert SalvoEnded();
         if (msg.value == 0) revert ZeroAmount();
@@ -239,6 +252,7 @@ contract Salvo {
 
     function buy(address token, uint256 minTokensOut) external payable nonReentrant {
         Launch storage l = launches[token];
+        if (l.retired) revert TokenRetired();
         if (msg.value == 0) revert ZeroAmount();
         (uint256 rEth, uint256 rTok) = _reserves(l);
 

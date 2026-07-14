@@ -186,6 +186,49 @@ contract SalvoTest is Test {
         assertTrue(second != address(0));
     }
 
+    function test_reclaimRetiresOldTokenExitOnly() public {
+        // The CASHCAT scenario: the original goes dormant, the name is
+        // reclaimed, and the zombie must never be buyable or graduate,
+        // while its holders keep full exit liquidity.
+        address old = _launch(); // RAT #1
+        SalvoToken oldToken = SalvoToken(old);
+
+        // Tiny salvo, settle, deliver: alice holds some of the original.
+        vm.prank(alice);
+        salvo.commit{value: 0.01 ether}(old);
+        vm.warp(block.timestamp + salvo.salvoDuration() + 1);
+        salvo.settle(old);
+        salvo.distribute(old, 10);
+        uint256 aliceBalance = oldToken.balanceOf(old == address(0) ? alice : alice);
+        assertGt(aliceBalance, 0);
+
+        // Dormant (0.0099 ETH in curve) + past the delay: dave reclaims.
+        vm.warp(block.timestamp + salvo.reclaimDelay() + 1);
+        uint256 fee = salvo.launchFee();
+        vm.prank(dave);
+        address fresh = salvo.createLaunch{value: fee}("Rat Reborn", "RAT", "");
+
+        // The zombie is retired: nobody can buy in or revive it.
+        vm.prank(dave);
+        vm.expectRevert(Salvo.TokenRetired.selector);
+        salvo.buy{value: 1 ether}(old, 0);
+
+        // But alice exits freely at the curve price, any time.
+        vm.startPrank(alice);
+        oldToken.approve(address(salvo), type(uint256).max);
+        uint256 before = alice.balance;
+        salvo.sell(old, aliceBalance, 0);
+        vm.stopPrank();
+        assertGt(alice.balance, before);
+
+        // The new RAT is the one and only buyable RAT.
+        vm.warp(block.timestamp + salvo.salvoDuration() + 1);
+        salvo.settle(fresh);
+        vm.prank(dave);
+        salvo.buy{value: 0.1 ether}(fresh, 0);
+        assertGt(SalvoToken(fresh).balanceOf(dave), 0);
+    }
+
     function test_graduatedTickerNeverReclaimable() public {
         address token = _launch();
         vm.warp(block.timestamp + salvo.salvoDuration() + 1);

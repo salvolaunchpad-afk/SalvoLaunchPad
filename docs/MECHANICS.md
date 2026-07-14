@@ -121,6 +121,14 @@ and bury the real team. Salvo blocks them at the contract:
   token never graduated, is older than `reclaimDelay` (72h), and its
   curve holds less than `dormancyFloor` (0.15 ETH). Real communities
   can't be vamped; dead names recycle.
+- **Reclaiming retires the old token to exit-only.** Buys and commits on
+  the retired token revert forever and it can never graduate, so a
+  reclaimed zombie can't be revived to confuse buyers. Sells always
+  work: each token's curve ETH is isolated and exactly backs its
+  circulating supply, so holders of a retired token keep full exit
+  liquidity at the formula price, indefinitely. Nothing is confiscated.
+- Invariant: **at most one buyable token per ticker at any moment**, and
+  graduation locks the name permanently.
 - `tickerAvailable(symbol)` lets the launch form check availability live.
 
 ## Known gaps before mainnet

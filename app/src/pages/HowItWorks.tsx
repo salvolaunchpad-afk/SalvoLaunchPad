@@ -63,7 +63,7 @@ const FAQ = [
   },
   {
     q: 'What stops copycat "vamp" launches?',
-    a: 'The contract enforces one live token per ticker, case-insensitive. Nobody can launch a second CASHCAT while yours is alive, and graduated tokens own their ticker forever. Dead tickers recycle after 72 hours of dormancy so squatters can\'t hoard names either.',
+    a: 'The contract enforces one buyable token per ticker, case-insensitive. Nobody can launch a second CASHCAT while yours is alive, and graduated tokens own their ticker forever. Abandoned tickers recycle after 72 hours of dormancy, and reclaiming one retires the old token to exit-only: its holders can always sell back to its locked curve, but nobody can buy in, revive it, or graduate it.',
   },
   {
     q: 'What chain is this on?',
