@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
-import { GRADUATION_SOL, SALVO_GLOBAL_CAP, marketCapSol } from '../curve'
-import { useNow, useSolPrice } from '../hooks'
+import { GRADUATION_ETH, SALVO_GLOBAL_CAP, marketCapEth } from '../curve'
+import { useNow, useEthPrice } from '../hooks'
 import type { Launch } from '../types'
-import { countdown, fmtSol, fmtUsd, timeAgo } from '../util'
+import { countdown, fmtEth, fmtUsd, timeAgo } from '../util'
 import SocialRow from './SocialRow'
 
 export function Tile({ l }: { l: Launch }) {
@@ -22,10 +22,10 @@ export function PhasePill({ phase }: { phase: Launch['phase'] }) {
 
 export default function TokenCard({ l }: { l: Launch }) {
   useNow()
-  const solUsd = useSolPrice()
+  const ethUsd = useEthPrice()
   const inSalvo = l.phase === 'salvo'
-  const mcap = marketCapSol(l.virtualSol, l.virtualTokens)
-  const progress = Math.min(100, (l.realSol / GRADUATION_SOL) * 100)
+  const mcap = marketCapEth(l.virtualEth, l.virtualTokens)
+  const progress = Math.min(100, (l.realEth / GRADUATION_ETH) * 100)
 
   return (
     <Link to={`/t/${l.mint}`} className={`card${inSalvo ? ' card-salvo' : ''}`}>
@@ -52,19 +52,19 @@ export default function TokenCard({ l }: { l: Launch }) {
           </div>
           <div className="row">
             <span className="k">{l.salvoWallets} wallets in</span>
-            <span className="v">{fmtSol(l.salvoCommitted)}</span>
+            <span className="v">{fmtEth(l.salvoCommitted)}</span>
           </div>
         </>
       ) : (
         <>
           <div className="row">
             <span className="k">market cap</span>
-            <span className="v">{solUsd !== null ? fmtUsd(mcap * solUsd) : fmtSol(mcap, 0)}</span>
+            <span className="v">{ethUsd !== null ? fmtUsd(mcap * ethUsd) : fmtEth(mcap, 1)}</span>
           </div>
           <div className="row">
             <span className="k">volume</span>
             <span className="v">
-              {solUsd !== null ? fmtUsd(l.volumeSol * solUsd) : fmtSol(l.volumeSol, 1)}
+              {ethUsd !== null ? fmtUsd(l.volumeEth * ethUsd) : fmtEth(l.volumeEth, 2)}
               <span style={{ color: 'var(--dim)' }}> · {l.txns} tx</span>
             </span>
           </div>
@@ -73,7 +73,7 @@ export default function TokenCard({ l }: { l: Launch }) {
           </div>
           <div className="row">
             <span className="k">{l.holders} holders · {l.totalStakedPct}% staked</span>
-            <span className="v green-text">{fmtSol(l.lifetimeHolderFees, 2)} → holders</span>
+            <span className="v green-text">{fmtEth(l.lifetimeHolderFees, 3)} → holders</span>
           </div>
         </>
       )}

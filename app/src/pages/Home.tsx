@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import TokenCard from '../components/TokenCard'
 import { useLaunches } from '../hooks'
-import { fmtSol } from '../util'
+import { fmtEth } from '../util'
 import type { Launch } from '../types'
 
 function Column({ title, sub, color, items, empty }: {
@@ -45,7 +45,7 @@ export default function Home() {
           <p className="hero-sub">
             The launchpad where nobody snipes your entry. Every token opens with a
             2-minute batch auction: one price for every wallet, no bots, no gas wars.
-            Then holders stake to earn SOL from every single trade. Launch it, hold
+            Then holders stake to earn ETH from every single trade. Launch it, hold
             it, get paid for it.
           </p>
           <div className="hero-actions">
@@ -56,11 +56,11 @@ export default function Home() {
         <div className="hero-stats">
           <div className="chip chip-green">
             <span className="k">paid to holders</span>
-            <span className="v">{fmtSol(paidToHolders)}</span>
+            <span className="v">{fmtEth(paidToHolders)}</span>
           </div>
           <div className="chip chip-accent">
             <span className="k">in open salvos</span>
-            <span className="v">{fmtSol(inOpenSalvos)}</span>
+            <span className="v">{fmtEth(inOpenSalvos)}</span>
           </div>
           <div className="chip">
             <span className="k">launches</span>
@@ -72,21 +72,21 @@ export default function Home() {
       <div className="board">
         <Column
           title="In the salvo"
-          sub="Just launched. The 2-minute batch auction is open: commit SOL now and you pay the same price as everyone else in the window."
+          sub="Just launched. The 2-minute batch auction is open: commit ETH now and you pay the same price as everyone else in the window."
           color="var(--accent)"
           items={inSalvo}
           empty="No open windows right now. Launch one."
         />
         <Column
           title="In the trenches"
-          sub="Trading live on the bonding curve. Stake what you hold and earn SOL from every buy and sell."
+          sub="Trading live on the bonding curve. Stake what you hold and earn ETH from every buy and sell."
           color="var(--green)"
           items={live}
           empty="Nothing live yet."
         />
         <Column
           title="Over the top"
-          sub="Raised 85 SOL and graduated. Liquidity is permanent, and stakers keep earning."
+          sub="Raised 2.8 ETH and graduated. Liquidity is permanent, and stakers keep earning."
           color="var(--gold)"
           items={graduating}
           empty="No graduations yet. The first one is yours to make."

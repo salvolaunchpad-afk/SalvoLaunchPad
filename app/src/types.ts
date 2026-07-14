@@ -7,13 +7,14 @@ export interface Socials {
 }
 
 export interface Launch {
+  // On EVM `mint` holds the token contract address; kept as the routing key.
   mint: string
   name: string
   symbol: string
   creator: string
   image?: string
   socials?: Socials
-  volumeSol: number
+  volumeEth: number
   txns: number
   tileHue: number
   createdAt: number
@@ -22,9 +23,9 @@ export interface Launch {
   salvoCommitted: number
   salvoWallets: number
   yourCommit: number
-  virtualSol: number
+  virtualEth: number
   virtualTokens: number
-  realSol: number
+  realEth: number
   realTokens: number
   lifetimeHolderFees: number
   creatorEarned: number

@@ -4,12 +4,12 @@ import SocialRow from '../components/SocialRow'
 import Spark from '../components/Spark'
 import { PhasePill, Tile } from '../components/TokenCard'
 import {
-  FEE_PCT, GRADUATION_SOL, SALVO_GLOBAL_CAP, SALVO_WALLET_CAP,
-  marketCapSol, spotPrice, tokensOutForSol, solOutForTokens,
+  FEE_PCT, GRADUATION_ETH, SALVO_GLOBAL_CAP, SALVO_WALLET_CAP,
+  marketCapEth, spotPrice, tokensOutForEth, ethOutForTokens,
 } from '../curve'
-import { useLaunch, useNow, useSolPrice } from '../hooks'
+import { useLaunch, useNow, useEthPrice } from '../hooks'
 import { buy, claimRewards, commitToSalvo, sell, stake, unstake } from '../mock'
-import { countdown, fmtNum, fmtPrice, fmtSol, fmtUsd, timeAgo } from '../util'
+import { countdown, fmtNum, fmtPrice, fmtEth, fmtUsd, timeAgo } from '../util'
 
 export default function TokenPage() {
   const { mint } = useParams()
@@ -51,8 +51,8 @@ type L = NonNullable<ReturnType<typeof useLaunch>>
 
 function SalvoInfo({ l }: { l: L }) {
   const net = l.salvoCommitted * (1 - FEE_PCT)
-  const pool = net > 0 ? tokensOutForSol(l.virtualSol, l.virtualTokens, net) : 0
-  const clearing = pool > 0 ? net / pool : spotPrice(l.virtualSol, l.virtualTokens)
+  const pool = net > 0 ? tokensOutForEth(l.virtualEth, l.virtualTokens, net) : 0
+  const clearing = pool > 0 ? net / pool : spotPrice(l.virtualEth, l.virtualTokens)
   return (
     <div className="panel">
       <div className="panel-title">Salvo window: batch auction</div>
@@ -65,20 +65,20 @@ function SalvoInfo({ l }: { l: L }) {
         <div style={{ width: `${Math.min(100, (l.salvoCommitted / SALVO_GLOBAL_CAP) * 100)}%` }} />
       </div>
       <div className="stat-grid" style={{ marginTop: 12 }}>
-        <div className="stat"><div className="k">committed</div><div className="v">{fmtSol(l.salvoCommitted)}</div></div>
+        <div className="stat"><div className="k">committed</div><div className="v">{fmtEth(l.salvoCommitted)}</div></div>
         <div className="stat"><div className="k">wallets in</div><div className="v">{l.salvoWallets}</div></div>
         <div className="stat"><div className="k">projected clearing price</div><div className="v">{fmtPrice(clearing)}</div></div>
-        <div className="stat"><div className="k">window cap</div><div className="v">{SALVO_GLOBAL_CAP} SOL</div></div>
+        <div className="stat"><div className="k">window cap</div><div className="v">{SALVO_GLOBAL_CAP} ETH</div></div>
       </div>
     </div>
   )
 }
 
 function CurveInfo({ l }: { l: L }) {
-  const solUsd = useSolPrice()
-  const price = spotPrice(l.virtualSol, l.virtualTokens)
-  const mcap = marketCapSol(l.virtualSol, l.virtualTokens)
-  const progress = Math.min(100, (l.realSol / GRADUATION_SOL) * 100)
+  const ethUsd = useEthPrice()
+  const price = spotPrice(l.virtualEth, l.virtualTokens)
+  const mcap = marketCapEth(l.virtualEth, l.virtualTokens)
+  const progress = Math.min(100, (l.realEth / GRADUATION_ETH) * 100)
   return (
     <div className="panel">
       <div className="panel-title">Curve</div>
@@ -86,18 +86,18 @@ function CurveInfo({ l }: { l: L }) {
       <div className="stat-grid">
         <div className="stat">
           <div className="k">price</div>
-          <div className="v">{solUsd !== null ? fmtUsd(price * solUsd) : `${fmtPrice(price)} SOL`}</div>
+          <div className="v">{ethUsd !== null ? fmtUsd(price * ethUsd) : `${fmtPrice(price)} ETH`}</div>
         </div>
         <div className="stat">
           <div className="k">market cap</div>
-          <div className="v">{solUsd !== null ? fmtUsd(mcap * solUsd) : fmtSol(mcap, 0)}</div>
+          <div className="v">{ethUsd !== null ? fmtUsd(mcap * ethUsd) : fmtEth(mcap, 1)}</div>
         </div>
         <div className="stat">
           <div className="k">volume</div>
-          <div className="v">{solUsd !== null ? fmtUsd(l.volumeSol * solUsd) : fmtSol(l.volumeSol, 1)}</div>
+          <div className="v">{ethUsd !== null ? fmtUsd(l.volumeEth * ethUsd) : fmtEth(l.volumeEth, 2)}</div>
         </div>
         <div className="stat"><div className="k">txns</div><div className="v">{l.txns}</div></div>
-        <div className="stat"><div className="k">in curve</div><div className="v">{fmtSol(l.realSol)}</div></div>
+        <div className="stat"><div className="k">in curve</div><div className="v">{fmtEth(l.realEth)}</div></div>
         <div className="stat"><div className="k">holders</div><div className="v">{l.holders}</div></div>
       </div>
       <div className={`meter ${l.phase === 'graduating' ? 'meter-gold' : 'meter-green'}`} style={{ marginTop: 14 }}>
@@ -105,7 +105,7 @@ function CurveInfo({ l }: { l: L }) {
       </div>
       <div className="row">
         <span className="k">graduation progress</span>
-        <span className="v">{progress.toFixed(1)}% of {GRADUATION_SOL} SOL</span>
+        <span className="v">{progress.toFixed(1)}% of {GRADUATION_ETH} ETH</span>
       </div>
       {l.phase === 'graduating' && (
         <div className="note-box gold-text">
@@ -126,12 +126,12 @@ function FeePanel({ l }: { l: L }) {
         <div style={{ width: '25%', background: '#171b24', color: 'var(--muted)' }}>25% protocol</div>
       </div>
       <div className="stat-grid">
-        <div className="stat"><div className="k">paid to holders so far</div><div className="v green-text">{fmtSol(l.lifetimeHolderFees, 3)}</div></div>
-        <div className="stat"><div className="k">creator earned</div><div className="v">{fmtSol(l.creatorEarned, 3)}</div></div>
+        <div className="stat"><div className="k">paid to holders so far</div><div className="v green-text">{fmtEth(l.lifetimeHolderFees, 4)}</div></div>
+        <div className="stat"><div className="k">creator earned</div><div className="v">{fmtEth(l.creatorEarned, 4)}</div></div>
         <div className="stat"><div className="k">supply staked</div><div className="v">{l.totalStakedPct}%</div></div>
       </div>
       <p className="note" style={{ marginTop: 10 }}>
-        Rewards are paid in SOL, not in the token, so staking earns yield from
+        Rewards are paid in ETH, not in the token, so staking earns yield from
         real trading volume, win or lose.
       </p>
     </div>
@@ -139,7 +139,7 @@ function FeePanel({ l }: { l: L }) {
 }
 
 function SalvoPanel({ l }: { l: L }) {
-  const [amt, setAmt] = useState('0.5')
+  const [amt, setAmt] = useState('0.02')
   const amount = parseFloat(amt) || 0
   const remaining = Math.max(0, SALVO_WALLET_CAP - l.yourCommit)
   return (
@@ -154,16 +154,16 @@ function SalvoPanel({ l }: { l: L }) {
         disabled={amount <= 0 || amount > remaining}
         onClick={() => commitToSalvo(l.mint, amount)}
       >
-        Commit {amount > 0 ? fmtSol(amount) : 'SOL'}
+        Commit {amount > 0 ? fmtEth(amount) : 'ETH'}
       </button>
       <div className="row" style={{ marginTop: 10 }}>
         <span className="k">your commit</span>
-        <span className="v">{fmtSol(l.yourCommit)} / {SALVO_WALLET_CAP} SOL cap</span>
+        <span className="v">{fmtEth(l.yourCommit)} / {SALVO_WALLET_CAP} ETH cap</span>
       </div>
       <div className="note-box">
-        The 2 SOL per-wallet cap means no single whale owns the launch. Top up as
-        much as you like until the window closes. When it does, your tokens are
-        sent to your wallet automatically. Nothing to claim.
+        The {SALVO_WALLET_CAP} ETH per-wallet cap means no single whale owns the
+        launch. Top up as much as you like until the window closes. When it does,
+        your tokens are sent to your wallet automatically. Nothing to claim.
       </div>
     </div>
   )
@@ -171,14 +171,14 @@ function SalvoPanel({ l }: { l: L }) {
 
 function TradePanel({ l }: { l: L }) {
   const [side, setSide] = useState<'buy' | 'sell'>('buy')
-  const [amt, setAmt] = useState('0.5')
+  const [amt, setAmt] = useState('0.02')
   const amount = parseFloat(amt) || 0
   const live = l.phase === 'live'
 
   const est =
     side === 'buy'
-      ? tokensOutForSol(l.virtualSol, l.virtualTokens, amount * (1 - FEE_PCT))
-      : solOutForTokens(l.virtualSol, l.virtualTokens, amount) * (1 - FEE_PCT)
+      ? tokensOutForEth(l.virtualEth, l.virtualTokens, amount * (1 - FEE_PCT))
+      : ethOutForTokens(l.virtualEth, l.virtualTokens, amount) * (1 - FEE_PCT)
 
   return (
     <div className="panel">
@@ -189,7 +189,7 @@ function TradePanel({ l }: { l: L }) {
       </div>
       <div className="input-row">
         <input value={amt} onChange={(e) => setAmt(e.target.value)} inputMode="decimal" />
-        <span className="note" style={{ alignSelf: 'center', minWidth: 44 }}>{side === 'buy' ? 'SOL' : l.symbol}</span>
+        <span className="note" style={{ alignSelf: 'center', minWidth: 44 }}>{side === 'buy' ? 'ETH' : l.symbol}</span>
       </div>
       {side === 'sell' && (
         <div className="row">
@@ -201,11 +201,11 @@ function TradePanel({ l }: { l: L }) {
       )}
       <div className="row">
         <span className="k">you receive ≈</span>
-        <span className="v">{side === 'buy' ? `${fmtNum(Math.max(0, est))} ${l.symbol}` : fmtSol(Math.max(0, est), 4)}</span>
+        <span className="v">{side === 'buy' ? `${fmtNum(Math.max(0, est))} ${l.symbol}` : fmtEth(Math.max(0, est), 5)}</span>
       </div>
       <div className="row">
         <span className="k">fee (1%)</span>
-        <span className="v">{side === 'buy' ? fmtSol(amount * FEE_PCT, 4) : fmtSol(solOutForTokens(l.virtualSol, l.virtualTokens, amount) * FEE_PCT, 4)}</span>
+        <span className="v">{side === 'buy' ? fmtEth(amount * FEE_PCT, 5) : fmtEth(ethOutForTokens(l.virtualEth, l.virtualTokens, amount) * FEE_PCT, 5)}</span>
       </div>
       <div style={{ marginTop: 10 }}>
         <button
@@ -240,10 +240,10 @@ function StakePanel({ l }: { l: L }) {
       </div>
       <div className="row" style={{ marginTop: 12 }}>
         <span className="k">claimable rewards</span>
-        <span className="v green-text">{fmtSol(l.yourClaimable, 5)}</span>
+        <span className="v green-text">{fmtEth(l.yourClaimable, 6)}</span>
       </div>
       <button className="btn btn-block" style={{ marginTop: 6 }} disabled={l.yourClaimable <= 0} onClick={() => claimRewards(l.mint)}>
-        Claim SOL
+        Claim ETH
       </button>
       <p className="note" style={{ marginTop: 10, fontSize: 11.5 }}>
         Minimum stake 1,000 tokens. Unstaking unlocks 5 minutes after your last

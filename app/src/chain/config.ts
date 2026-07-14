@@ -1,29 +1,34 @@
-import { PublicKey } from '@solana/web3.js'
+import { defineChain } from 'viem'
 
-export const PROGRAM_ID = new PublicKey('yY4cYAc6iE2WtaPbcbsBVqEH5b7sjvsSunt4itujQa3')
+// Robinhood Chain (Arbitrum-stack EVM L2). Mainnet went live 2026-07-01.
+export const robinhoodMainnet = defineChain({
+  id: 4663,
+  name: 'Robinhood Chain',
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  rpcUrls: { default: { http: ['https://rpc.mainnet.chain.robinhood.com'] } },
+  blockExplorers: {
+    default: { name: 'Blockscout', url: 'https://robinhoodchain.blockscout.com' },
+  },
+})
 
-const utf8 = (s: string) => new TextEncoder().encode(s)
+export const robinhoodTestnet = defineChain({
+  id: 46646,
+  name: 'Robinhood Chain Testnet',
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  rpcUrls: { default: { http: ['https://rpc.testnet.chain.robinhood.com'] } },
+  blockExplorers: {
+    default: { name: 'Blockscout', url: 'https://testnet.robinhoodchain.blockscout.com' },
+  },
+  testnet: true,
+})
 
-export const configPda = () =>
-  PublicKey.findProgramAddressSync([utf8('config')], PROGRAM_ID)[0]
+// Default to testnet until we deploy to mainnet; override with VITE_CHAIN=mainnet.
+export const ACTIVE_CHAIN =
+  import.meta.env.VITE_CHAIN === 'mainnet' ? robinhoodMainnet : robinhoodTestnet
 
-export const curvePda = (mint: PublicKey) =>
-  PublicKey.findProgramAddressSync([utf8('curve'), mint.toBuffer()], PROGRAM_ID)[0]
+// Deployed Salvo contract address, set after `forge script Deploy`.
+// Zero address means "not deployed yet"; the app runs on the mock layer.
+export const SALVO_ADDRESS = (import.meta.env.VITE_SALVO_ADDRESS ??
+  '0x0000000000000000000000000000000000000000') as `0x${string}`
 
-export const solVaultPda = (curve: PublicKey) =>
-  PublicKey.findProgramAddressSync([utf8('sol_vault'), curve.toBuffer()], PROGRAM_ID)[0]
-
-export const rewardVaultPda = (curve: PublicKey) =>
-  PublicKey.findProgramAddressSync([utf8('reward_vault'), curve.toBuffer()], PROGRAM_ID)[0]
-
-export const tokenVaultPda = (curve: PublicKey) =>
-  PublicKey.findProgramAddressSync([utf8('token_vault'), curve.toBuffer()], PROGRAM_ID)[0]
-
-export const stakeVaultPda = (curve: PublicKey) =>
-  PublicKey.findProgramAddressSync([utf8('stake_vault'), curve.toBuffer()], PROGRAM_ID)[0]
-
-export const commitPda = (curve: PublicKey, buyer: PublicKey) =>
-  PublicKey.findProgramAddressSync([utf8('commit'), curve.toBuffer(), buyer.toBuffer()], PROGRAM_ID)[0]
-
-export const positionPda = (curve: PublicKey, owner: PublicKey) =>
-  PublicKey.findProgramAddressSync([utf8('position'), curve.toBuffer(), owner.toBuffer()], PROGRAM_ID)[0]
+export const IS_LIVE = SALVO_ADDRESS !== '0x0000000000000000000000000000000000000000'

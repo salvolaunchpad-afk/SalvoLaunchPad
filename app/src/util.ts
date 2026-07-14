@@ -6,8 +6,8 @@ export function fmtUsd(n: number): string {
   return `$${n.toFixed(6)}`
 }
 
-export function fmtSol(n: number, digits = 2): string {
-  return `${n.toLocaleString(undefined, { maximumFractionDigits: digits })} SOL`
+export function fmtEth(n: number, digits = 3): string {
+  return `${n.toLocaleString(undefined, { maximumFractionDigits: digits })} ETH`
 }
 
 export function fmtNum(n: number): string {

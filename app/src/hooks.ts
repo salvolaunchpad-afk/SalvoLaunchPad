@@ -1,11 +1,11 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { getLaunches, subscribe } from './mock'
-import { getSolPrice, subscribeSolPrice } from './solPrice'
+import { getEthPrice, subscribeEthPrice } from './ethPrice'
 import type { Launch } from './types'
 
-/** Live SOL/USD price, or null before the first fetch resolves. */
-export function useSolPrice(): number | null {
-  return useSyncExternalStore(subscribeSolPrice, getSolPrice)
+/** Live ETH/USD price, or null before the first fetch resolves. */
+export function useEthPrice(): number | null {
+  return useSyncExternalStore(subscribeEthPrice, getEthPrice)
 }
 
 export function useLaunches(): Launch[] {
@@ -17,7 +17,7 @@ export function useLaunch(mint: string | undefined): Launch | undefined {
   return launches.find((l) => l.mint === mint)
 }
 
-/** Re-render every 250ms — keeps countdowns smooth. */
+/** Re-render every 250ms so countdowns stay smooth. */
 export function useNow(): number {
   const [now, setNow] = useState(Date.now())
   useEffect(() => {

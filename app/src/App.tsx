@@ -1,14 +1,14 @@
 import { Link, Route, Routes } from 'react-router-dom'
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 import Ticker from './components/Ticker'
-import { useSolPrice } from './hooks'
+import { useEthPrice } from './hooks'
 import Home from './pages/Home'
 import HowItWorks from './pages/HowItWorks'
 import LaunchPage from './pages/LaunchPage'
 import TokenPage from './pages/TokenPage'
 
 export default function App() {
-  const solUsd = useSolPrice()
+  const ethUsd = useEthPrice()
   return (
     <div className="shell">
       <header className="topbar">
@@ -18,11 +18,11 @@ export default function App() {
         </Link>
         <div className="topbar-actions">
           <Link to="/how" className="nav-link">How it works</Link>
-          {solUsd !== null && (
-            <span className="sol-price">SOL <b>${solUsd.toFixed(2)}</b></span>
+          {ethUsd !== null && (
+            <span className="sol-price">ETH <b>${ethUsd.toFixed(2)}</b></span>
           )}
           <Link to="/launch" className="btn btn-accent">Launch a token</Link>
-          <WalletMultiButton />
+          <ConnectButton showBalance={false} accountStatus="address" chainStatus="icon" />
         </div>
       </header>
       <Ticker />

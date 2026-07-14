@@ -350,15 +350,4 @@ input { font: inherit; }
 
 h1 { font-family: var(--display); }
 
-/* ── Wallet adapter theme overrides ──────────────────── */
-.wallet-adapter-button {
-  font-family: var(--display) !important; font-size: 14px !important; font-weight: 600 !important;
-  height: 38px !important; padding: 0 16px !important; border-radius: 10px !important;
-  background: var(--panel-2) !important; border: 1px solid var(--border-strong) !important;
-  transition: border-color 0.15s, box-shadow 0.2s !important;
-}
-.wallet-adapter-button:hover { border-color: var(--accent-dim) !important; box-shadow: var(--glow-accent) !important; background: var(--panel-2) !important; }
-.wallet-adapter-modal-wrapper { background: var(--panel) !important; border: 1px solid var(--border-strong) !important; border-radius: 16px !important; font-family: var(--body) !important; }
-.wallet-adapter-modal-button-close { background: var(--panel-2) !important; }
-.wallet-adapter-modal-title { font-family: var(--display) !important; color: var(--text) !important; }
-.wallet-adapter-modal-list .wallet-adapter-button { background: transparent !important; border: none !important; }
+/* RainbowKit's connect button brings its own themed styles (see main.tsx). */
